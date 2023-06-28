@@ -1,86 +1,74 @@
-import { useState } from "react";
+import { createRef, RefObject, useMemo, useRef, useState } from "react";
 import TinderCard from "react-tinder-card";
 
-const mockData = [
-  {
-    name: "John",
-    age: 20,
-    url: "https://picsum.photos/id/237/200/300",
-    tags: ["cooking", "reading", "coding"],
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec auctor, nisl eget ultricies ultrices, nunc nisl ultricies nunc, vitae ultricies"
-  },
-  {
-    name: "Jane",
-    age: 24,
-    url: "https://picsum.photos/id/238/200/300",
-    tags: ["hiking", "coding"],
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec auctor, nisl eget ultricies ultrices, nunc nisl ultricies nunc, vitae ultricies"
-  },
-  {
-    name: "Bob",
-    age: 22,
-    tags: ["cooking", "swimming", "fishing", "basketball"],
-    url: "https://picsum.photos/id/238/200/300",
-    description: `明月幾時有？把酒問青天。不知天上宮闕，今夕是何年？
-    我欲乘風歸去，又恐瓊樓玉宇，高處不勝寒。 起舞弄清影，何似在人間？
-    
-    轉朱閣，低綺戶，照無眠。
-    
-    不應有恨，何事長向別時圓？
-    
-    人有悲歡離合，月有陰晴圓缺，此事古難全。但願人長久，千里共嬋娟。
-    明月幾時有？把酒問青天。不知天上宮闕，今夕是何年？
-    我欲乘風歸去，又恐瓊樓玉宇，高處不勝寒。 起舞弄清影，何似在人間？
-    
-    轉朱閣，低綺戶，照無眠。
-    
-    不應有恨，何事長向別時圓？
-    
-    人有悲歡離合，月有陰晴圓缺，此事古難全。但願人長久，千里共嬋娟。
-    明月幾時有？把酒問青天。不知天上宮闕，今夕是何年？
-    我欲乘風歸去，又恐瓊樓玉宇，高處不勝寒。 起舞弄清影，何似在人間？
-    
-    轉朱閣，低綺戶，照無眠。
-    
-    不應有恨，何事長向別時圓？
-    
-    人有悲歡離合，月有陰晴圓缺，此事古難全。但願人長久，千里共嬋娟。end`
-  }
-];
+import mockData from "./constant/data";
 
-const Demo = () => {
-  const [people, setPeople] = useState(mockData);
+type Direction = "left" | "right" | "up" | "down";
 
-  const swiped = (direction: string, nameToDelete: string) => {
-    console.log(`Removing ${nameToDelete}`);
-    // Filter out the person that was swiped
-    setPeople(people.filter(person => person.name !== nameToDelete));
+export interface API {
+  swipe(dir?: Direction): Promise<void>;
+  restoreCard(): Promise<void>;
+}
+
+const App = () => {
+  const [currentIndex, setCurrentIndex] = useState<number>(mockData.length - 1);
+  const [lastDirection, setLastDirection] = useState<string | undefined>();
+  const currentIndexRef = useRef<number>(currentIndex);
+  const childRefs = useMemo<RefObject<API>[]>(
+    () =>
+      Array(mockData.length)
+        .fill(0)
+        .map(() => createRef()),
+    []
+  );
+
+  const updateCurrentIndex = (val: number) => {
+    setCurrentIndex(val);
+    currentIndexRef.current = val;
   };
 
-  const outOfFrame = (name: string) => {
-    console.log(`${name} left the screen`);
+  const canGoBack = currentIndex < mockData.length - 1;
+  const canSwipe = currentIndex >= 0;
+
+  const swiped = (direction: Direction, nameToDelete: string, index: number) => {
+    setLastDirection(direction);
+    updateCurrentIndex(index - 1);
   };
 
-  const handleNo = () => {
-    setPeople(people => people.slice(0, people.length - 1));
+  const outOfFrame = (name: string, idx: number) => {
+    console.log(`${name} (${idx}) left the screen!`, currentIndexRef.current);
+    currentIndexRef.current >= idx && childRefs[idx].current?.restoreCard();
   };
 
-  const handleYes = () => {
-    setPeople(people => people.slice(0, people.length - 1));
+  const swipe = async (direction: Direction) => {
+    if (canSwipe && currentIndex < mockData.length) {
+      await childRefs[currentIndex].current?.swipe(direction);
+    }
+  };
+
+  const goBack = async () => {
+    if (!canGoBack) return;
+    const newIndex = currentIndex + 1;
+    updateCurrentIndex(newIndex);
+    await childRefs[newIndex].current?.restoreCard();
+  };
+
+  const resetCards = async () => {
+    updateCurrentIndex(mockData.length - 1);
+    await Promise.all(childRefs.map(ref => ref.current?.restoreCard()));
   };
 
   return (
-    <div className="h-screen bg-gray-100">
+    <div className="h-screen max-w-screen bg-gray-100 overflow-hidden">
       <div className="relative flex items-center justify-center h-5/6">
-        {people.map(person => (
+        {mockData.map((person, index) => (
           <TinderCard
+            ref={childRefs[index]}
             key={person.name}
-            onSwipe={dir => swiped(dir, person.name)}
-            onCardLeftScreen={() => outOfFrame(person.name)}
+            onSwipe={dir => swiped(dir, person.name, index)}
+            onCardLeftScreen={() => outOfFrame(person.name, index)}
             preventSwipe={["up", "down"]}
-            className="absolute w-full h-full p-4 overflow-scroll bg-gradient-to-br from-[#38adae] to-[#cd295a] rounded-b-3xl shadow-md xl:max-w-[40rem]"
+            className="absolute w-full h-full p-4 pb-20 overflow-y-scroll scrolling bg-gradient-to-br from-[#38adae] to-[#cd295a] rounded-b-3xl shadow-md select-none xl:max-w-[40rem]"
           >
             <div className="flex items-center gap-4 mb-4">
               <img className="rounded-full h-16 w-16" src={person.url} alt="avatar" />
@@ -105,17 +93,17 @@ const Demo = () => {
           </TinderCard>
         ))}
 
-        {people.length !== 0 && (
-          <div className="absolute flex justify-evenly w-full bottom-4 font-extrabold">
+        {currentIndex >= 0 && (
+          <div className="absolute flex justify-evenly w-full bottom-4 font-extrabold xl:max-w-[40rem]">
             <button
               className="rounded-full w-16 h-16 text-[#975c67] bg-slate-50 drop-shadow-xl"
-              onClick={handleNo}
+              onClick={() => swipe("left")}
             >
               NO
             </button>
             <button
               className="rounded-full w-16 h-16 text-[#50a3a2] bg-slate-50 drop-shadow-xl"
-              onClick={handleYes}
+              onClick={() => swipe("right")}
             >
               YES
             </button>
@@ -124,13 +112,18 @@ const Demo = () => {
       </div>
 
       <div className="flex flex-col space-y-2 justify-center items-center h-1/6">
-        <p className="text-[#686b6b]">剩餘 {people.length} 人</p>
-        <button className="text-[#658e84] hover:text-[#7aac9f]" onClick={() => setPeople(mockData)}>
-          Reset
-        </button>
+        <p className="text-[#686b6b]">剩餘 {currentIndex + 1} 人</p>
+        <div className="flex gap-4">
+          <button className="text-[#658e84] hover:text-[#7aac9f]" onClick={goBack}>
+            Undo
+          </button>
+          <button className="text-[#a872ae] hover:text-[#865275]" onClick={resetCards}>
+            Reset
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Demo;
+export default App;
