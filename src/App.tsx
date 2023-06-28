@@ -61,7 +61,7 @@ const App = () => {
 
   return (
     <div className="h-screen max-w-screen bg-gray-100 overflow-hidden">
-      <div className="relative flex items-center justify-center h-5/6">
+      <div className="relative flex items-center justify-center h-3/4">
         {mockData.map((person, index) => (
           <TinderCard
             ref={childRefs[index]}
@@ -112,7 +112,7 @@ const App = () => {
         )}
       </div>
 
-      <div className="flex flex-col space-y-2 justify-center items-center h-1/6">
+      <div className="flex flex-col space-y-2 justify-center items-center p-8">
         <p className="text-[#686b6b]">剩餘 {currentIndex + 1} 人</p>
         <div className="flex gap-4">
           <button className="text-[#658e84] hover:text-[#7aac9f]" onClick={goBack}>
