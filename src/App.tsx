@@ -12,7 +12,7 @@ export interface API {
 
 const App = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(mockData.length - 1);
-  const [lastDirection, setLastDirection] = useState<string | undefined>();
+  const [_lastDirection, setLastDirection] = useState<string | undefined>(); // eslint-disable-line @typescript-eslint/no-unused-vars
   const currentIndexRef = useRef<number>(currentIndex);
   const childRefs = useMemo<RefObject<API>[]>(
     () =>
@@ -31,6 +31,7 @@ const App = () => {
   const canSwipe = currentIndex >= 0;
 
   const swiped = (direction: Direction, nameToDelete: string, index: number) => {
+    console.log("swiped", direction, nameToDelete, index);
     setLastDirection(direction);
     updateCurrentIndex(index - 1);
   };
