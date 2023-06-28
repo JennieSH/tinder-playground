@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig(({ command, mode }) => ({
   plugins: [react()],
-  base: mode === "production" ? "/tinder-swipe-cards/" : "/",
+  base: mode === "production" ? "/tinder-playground/" : "/",
   resolve: {
     alias: {
       "@/": path.resolve(__dirname, "./src"),
